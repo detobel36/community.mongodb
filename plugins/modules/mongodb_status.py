@@ -39,6 +39,12 @@ options:
       - The number of seconds to wait between polling executions.
     type: int
     default: 30
+  skip_login:
+    description:
+      - Get replicaset status without login
+    required: false
+    type: bool
+    default: false
   validate:
     description:
       - The type of validate to perform on the replicaset.
@@ -310,6 +316,7 @@ def main():
         poll=dict(type='int', default=1),
         replica_set=dict(type='str', default="rs0"),
         validate=dict(type='str', choices=['default', 'votes', 'minimal'], default='default'),
+        skip_login=dict(type='bool', default=False),
     )
     module = AnsibleModule(
         argument_spec=argument_spec,
@@ -321,6 +328,7 @@ def main():
                          exception=PYMONGO_IMP_ERR)
 
     replica_set = module.params['replica_set']
+    skip_login = module.params['skip_login']
     msg = None
 
     result = dict(
@@ -330,7 +338,8 @@ def main():
 
     try:
         client = get_mongodb_client(module)
-        client = mongo_auth(module, client)
+        if not skip_login:
+            client = mongo_auth(module, client)
     except Exception as e:
         module.fail_json(msg='Unable to connect to database: %s' % to_native(e))
 
